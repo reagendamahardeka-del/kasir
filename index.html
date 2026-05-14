@@ -746,6 +746,9 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 }
 
 ReactDOM.render(<React.StrictMode><App/></React.StrictMode>,document.getElementById('root'));
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>
