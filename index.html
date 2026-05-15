@@ -14,6 +14,7 @@
 body{font-family:'Plus Jakarta Sans',sans-serif;background:#0f172a;display:flex;justify-content:center;align-items:center;min-height:100vh;color:#334155}
 #root{width:100%;max-width:412px;height:100vh;max-height:892px;background:#f8fafc;position:relative;display:flex;flex-direction:column;overflow:hidden}
 
+/* Mengubah tampilan agar fleksibel dan penuh saat dibuka di Tablet/Tab */
 @media(min-width:600px){
   #root{max-width:90%;max-height:95vh;border-radius:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.4)}
 }
@@ -41,7 +42,7 @@ const rp=n=>new Intl.NumberFormat('id-ID').format(n||0);
 const tgl=()=>new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 const jam=()=>new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 
-const PIN_ADMIN = "1234";
+const PIN_ADMIN = "1234"; // Silakan ganti password admin sesuai kenyamanan Anda
 
 const MENU_DEFAULT=[
   {id:101,nama:'Nasi Bebek',harga:34000,kat:'Nasi',emoji:'🦆'},
@@ -68,7 +69,7 @@ const MENU_DEFAULT=[
   {id:401,nama:'Kopi Hitam',harga:5000,kat:'Minuman',emoji:'☕'},
   {id:402,nama:'Coffeemix',harga:5000,kat:'Minuman',emoji:'☕'},
   {id:403,nama:'Gooday',harga:5000,kat:'Minuman',emoji:'☕'},
-  {id:404,nama:'White Coffee',harga:5000,kat:'Minuman',emoji:'☕'},
+  {id:404,white:'White Coffee',harga:5000,kat:'Minuman',emoji:'☕'},
   {id:405,nama:'Milo',harga:5000,kat:'Minuman',emoji:'🥛'},
   {id:406,nama:'Susu Cho / Pt',harga:5000,kat:'Minuman',emoji:'🥛'},
   {id:407,nama:'Dancow Cho / Pt',harga:8000,kat:'Minuman',emoji:'🥛'},
@@ -100,13 +101,15 @@ function buildStruk(namaWarung,alamat,telp,trx){
   const p=(...b)=>chunks.push(...b);
   p(new Uint8Array([ESC,0x40]));
   
-  // Font Standard Bold untuk Nama Warung agar Pas di Kertas 58mm
-  p(new Uint8Array([ESC,0x61,1]),new Uint8Array([ESC,0x45,1]));
-  p(new TextEncoder().encode(namaWarung.substring(0,32)+'\n'));
-  p(new Uint8Array([ESC,0x45,0])); // Reset Bold
+  // Nama Warung
+  p(new Uint8Array([ESC,0x61,1]),new Uint8Array([ESC,0x45,1]),new Uint8Array([GS,0x21,0x10]));
+  p(new TextEncoder().encode(namaWarung + '\n'));
+  p(new Uint8Array([GS,0x21,0x00]),new Uint8Array([ESC,0x45,0])); // Reset ukuran & bold
   
-  if(alamat) p(new TextEncoder().encode(alamat.substring(0,W)+'\n'));
-  if(telp) p(new TextEncoder().encode('Telp: '+telp.substring(0,20)+'\n'));
+  // Alamat & Telp (Ditampilkan penuh tanpa substring yang memotong teks)
+  if(alamat) p(new TextEncoder().encode(alamat + '\n'));
+  if(telp) p(new TextEncoder().encode('Telp: ' + telp + '\n'));
+  
   p(new Uint8Array([ESC,0x61,0])); // Left align
   p(new TextEncoder().encode('-'.repeat(W)+'\n'));
   const tglJam='Tgl: '+trx.tgl+'  '+trx.jam;
@@ -127,8 +130,7 @@ function buildStruk(namaWarung,alamat,telp,trx){
   p(new TextEncoder().encode(pad('Kembali:', 'Rp '+rp(trx.kembali))+'\n'));
   p(new TextEncoder().encode('-'.repeat(W)+'\n'));
   p(new Uint8Array([ESC,0x61,1]));
-  p(new TextEncoder().encode('Terima kasih sudah mampir!\n'));
-  p(new TextEncoder().encode('Semoga sehat selalu :)\n'));
+  p(new TextEncoder().encode('Terima kasih sudah mampir!\n'));  p(new TextEncoder().encode('Semoga sehat selalu :)\n'));
   p(new Uint8Array([ESC,0x64,4]));
   p(new Uint8Array([GS,0x56,0x41,0x10]));
   const total=chunks.reduce((s,c)=>s+c.length,0);
@@ -170,8 +172,9 @@ const printer=new PrinterMgr();
 
 function cetakCss(namaWarung,alamat,telp,trx){
   let h=`<div style="text-align:center;font-weight:bold;font-size:14px;font-weight:900;margin-bottom:2px">${namaWarung}</div>`;
-  if(alamat) h+=`<div style="text-align:center;font-size:8px;line-height:1.1">${alamat}</div>`;
-  if(telp) h+=`<div style="text-align:center;font-size:8px;">Telp: ${telp}</div>`;
+  // Menghapus batas font-size kecil (8px) agar kontras terlihat jelas saat dicetak via browser/PDF
+  if(alamat) h+=`<div style="text-align:center;font-size:11px;line-height:1.2">${alamat}</div>`;
+  if(telp) h+=`<div style="text-align:center;font-size:11px;">Telp: ${telp}</div>`;
   h+=`<div>${'-'.repeat(32)}</div>`;
   h+=`<div style="font-size:10px">Tgl: ${trx.tgl}  Jam: ${trx.jam}</div>`;
   h+=`<div style="font-size:10px">No : #${String(trx.id).slice(-5)}</div>`;
@@ -196,6 +199,7 @@ function cetakCss(namaWarung,alamat,telp,trx){
 function ls(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 
+/* ═══════════════ MAIN APP ═══════════════ */
 function App(){
   const[tab,setTab]=useState('kasir');
   const[namaWarung,setNamaWarung]=useState(()=>localStorage.getItem('wg_nama_v10')||'Kedai Selada Air');
@@ -208,8 +212,8 @@ function App(){
   const[pengeluaran,setPengeluaran]=useState(()=>ls('wg_pgl_v10',[]));
   
   const[bayar,setBayar]=useState('');
-  const[diskonInput,setDiskonInput]=useState('');
-  const[metodeBayar,setMetodeBayar]=useState('Cash');
+  const[diskonInput,setDiskonInput]=useState(''); 
+  const[metodeBayar,setMetodeBayar]=useState('Cash'); 
   
   const[cartModal,setCartModal]=useState(null);
   const[toast,setToast]=useState('');
@@ -304,6 +308,7 @@ function App(){
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
+      {/* HEADER */}
       <div style={{background:'linear-gradient(135deg,#ea580c,#c2410c)',padding:'12px 16px',color:'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
         <div>
           <div style={{fontSize:'16px',fontWeight:800,lineHeight:1.1}}>{namaWarung}</div>
@@ -315,6 +320,7 @@ function App(){
         </button>
       </div>
 
+      {/* TAB NAVIGATION */}
       <div style={{display:'flex',background:'#fff',borderBottom:'1px solid #e2e8f0',flexShrink:0}}>
         {[{id:'kasir',l:'🍽️ Kasir'},{id:'laporan',l:'📊 Laporan'},{id:'menu',l:'📋 Menu'},{id:'setting',l:'⚙️ Pengaturan'}].map(t=>(
           <div key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:'12px 4px',textAlign:'center',fontSize:'12px',fontWeight:700,cursor:'pointer',borderBottom:tab===t.id?'3px solid #ea580c':'3px solid transparent',color:tab===t.id?'#ea580c':'#94a3b8',transition:'all .15s'}}>
@@ -323,6 +329,7 @@ function App(){
         ))}
       </div>
 
+      {/* BODY CONTENT */}
       <div style={{flex:1,overflowY:'auto',position:'relative'}}>
         {tab==='kasir'&&<TabKasir menu={menu} cart={cart} keCart={keCart} ubahQty={ubahQty} totalHarga={totalHargaAkhir} subtotal={subtotalHarga} diskon={hitungDiskon} totalQty={totalQty} setCartModal={setCartModal}/>}
         {tab==='laporan'&&<TabLaporan transaksi={transaksi} setTransaksi={setTransaksi} pengeluaran={pengeluaran} setPengeluaran={setPengeluaran} ulangCetak={ulangCetak} showMsg={showMsg} proteksi={verifikasiAksesAdmin}/>}
@@ -330,6 +337,7 @@ function App(){
         {tab==='setting'&&<TabSetting namaWarung={namaWarung} setNamaWarung={setNamaWarung} alamatWarung={alamatWarung} setAlamatWarung={setAlamatWarung} telpWarung={telpWarung} setTelpWarung={setTelpWarung} transaksi={transaksi} setTransaksi={setTransaksi} pengeluaran={pengeluaran} setPengeluaran={setPengeluaran} showMsg={showMsg} proteksi={verifikasiAksesAdmin}/>}
       </div>
 
+      {/* ── MODAL REVIEW ORDER ── */}
       {cartModal==='review'&&(
         <div style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.65)',display:'flex',alignItems:'flex-end',zIndex:99,animation:'fadeIn .2s ease'}}>
           <div style={{background:'#fff',width:'100%',borderRadius:'24px 24px 0 0',padding:'20px',maxHeight:'85%',display:'flex',flexDirection:'column',animation:'slideUp .25s ease'}}>
@@ -368,6 +376,7 @@ function App(){
         </div>
       )}
 
+      {/* ── MODAL PROSES PEMBAYARAN & DISKON ── */}
       {cartModal==='bayar'&&(
         <div style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.65)',display:'flex',alignItems:'flex-end',zIndex:99,animation:'fadeIn .2s ease'}}>
           <div style={{background:'#fff',width:'100%',borderRadius:'24px 24px 0 0',padding:'20px',maxHeight:'85%',display:'flex',flexDirection:'column',animation:'slideUp .25s ease'}}>
@@ -406,6 +415,7 @@ function App(){
             <input type="text" value={diskonInput} onChange={e=>setDiskonInput(e.target.value)} placeholder="Kosongkan jika tidak ada diskon..."
               style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:13,outline:'none',fontFamily:'Plus Jakarta Sans',marginBottom:10,fontWeight:600}}/>
 
+            {/* Form Input Tunai */}
             {metodeBayar === 'Cash' && (
               <>
                 <label style={{fontSize:11,color:'#64748b',fontWeight:700,marginBottom:4}}>NOMINAL TUNAI YANG DITERIMA</label>
@@ -433,11 +443,13 @@ function App(){
         </div>
       )}
 
+      {/* NOTIFIKASI TOAST */}
       {toast&&<div style={{position:'absolute',top:20,left:'50%',transform:'translateX(-50%)',background:'#1e293b',color:'#fff',padding:'8px 16px',borderRadius:20,fontSize:12,fontWeight:700,zIndex:999,whiteSpace:'nowrap',animation:'toastIn .2s ease'}}>{toast}</div>}
     </div>
   );
 }
 
+/* ═══ TAB KASIR (GRID KULINER) ═══ */
 function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,setCartModal}){
   const[kat,setKat]=useState('Semua');
   const[q,setQ]=useState('');
@@ -475,10 +487,10 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
             );
           })}
         </div>
-        
         {cart.length > 0 && <div style={{height:'150px'}} />}
       </div>
 
+      {/* BAR KERANJANG MELAYANG */}
       {cart.length>0&&(
         <div style={{position:'absolute',bottom:0,left:0,right:0,zIndex:50,padding:'10px 14px',background:'linear-gradient(to top,#f8fafc 80%,transparent)'}}>
           <div style={{background:'#fff',borderRadius:14,boxShadow:'0 -4px 15px rgba(0,0,0,0.08)',marginBottom:6,padding:10,maxHeight:90,overflowY:'auto',border:'1px solid #e2e8f0'}}>
@@ -499,6 +511,7 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
   );
 }
 
+/* ═══ TAB LAPORAN ═══ */
 const KAT_PGL=['Bahan Baku','Operasional','Gaji','Lain-lain'];
 function TabLaporan({transaksi,setTransaksi,pengeluaran,setPengeluaran,ulangCetak,showMsg,proteksi}){
   const[view,setView]=useState('hari');
@@ -610,6 +623,7 @@ function TabLaporan({transaksi,setTransaksi,pengeluaran,setPengeluaran,ulangCeta
   );
 }
 
+/* ═══ TAB DATA MENU KULINER ═══ */
 function TabMenu({menu,setMenu,showMsg}){
   const[showForm,setShowForm]=useState(false);
   const[form,setForm]=useState({nama:'',harga:'',kat:'Nasi',emoji:'🍚'});
@@ -670,6 +684,7 @@ function TabMenu({menu,setMenu,showMsg}){
   );
 }
 
+/* ═══ TAB SETTING ═══ */
 function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpWarung,setTelpWarung,setTransaksi,setPengeluaran,showMsg,proteksi}){
   const[nama,setNama]=useState(namaWarung);
   const[alamat,setAlamat]=useState(alamatWarung);
