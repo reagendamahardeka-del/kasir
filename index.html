@@ -102,15 +102,16 @@ function buildStruk(namaWarung,alamat,telp,trx){
   p(new Uint8Array([ESC,0x40]));
   // Nama Warung (Sedikit Diperkecil ukurannya dengan GS ! 0x00 agar tidak meluber terpotong)
   p(new Uint8Array([ESC,0x61,1]),new Uint8Array([ESC,0x45,1]),new Uint8Array([GS,0x21,0x10]));
-  p(new TextEncoder().encode(namaWarung.substring(0,W)+'\n'));
-  p(new Uint8Array([ESC,0x45,0])); // Reset bold
-  // Alamat dan Telp teks kecil
+  p(new TextEncoder().encode(namaWarung.substring(0,16)+'\n'));
+  p(new Uint8Array([GS,0x21,0x00]),new Uint8Array([ESC,0x45,0])); // Reset ukuran & bold
+  // Alamat dan Telp - center, ukuran normal
   if(alamat) p(new TextEncoder().encode(alamat.substring(0,W)+'\n'));
-  if(telp) p(new TextEncoder().encode(`Telp: ${telp.substring(0,20)}\n`));
-  p(new TextEncoder().encode('-'.repeat(W)+'\n'));
+  if(telp) p(new TextEncoder().encode('Telp: '+telp.substring(0,20)+'\n'));
   p(new Uint8Array([ESC,0x61,0])); // Left align
-  p(new TextEncoder().encode(`Tgl : ${trx.tgl}  Jam: ${trx.jam}\n`));
-  p(new TextEncoder().encode(`No  : #${String(trx.id).slice(-5)}\n`));
+  p(new TextEncoder().encode('-'.repeat(W)+'\n'));
+  const tglJam='Tgl: '+trx.tgl+'  '+trx.jam;
+  p(new TextEncoder().encode(tglJam.substring(0,W)+'\n'));
+  p(new TextEncoder().encode('No : #'+String(trx.id).slice(-5)+'\n'));
   p(new TextEncoder().encode('-'.repeat(W)+'\n'));
   trx.items.forEach(i=>{
     p(new TextEncoder().encode(i.nama.substring(0,W)+'\n'));
