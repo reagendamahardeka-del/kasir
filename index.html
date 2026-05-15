@@ -101,7 +101,7 @@ function buildStruk(namaWarung,alamat,telp,trx){
   const p=(...b)=>chunks.push(...b);
   p(new Uint8Array([ESC,0x40]));
   // Nama Warung (Sedikit Diperkecil ukurannya dengan GS ! 0x00 agar tidak meluber terpotong)
-  p(new Uint8Array([ESC,0x61,1]),new Uint8Array([ESC,0x45,1]),new Uint8Array([GS,0x21,0x00]));
+  p(new Uint8Array([ESC,0x61,1]),new Uint8Array([ESC,0x45,1]),new Uint8Array([GS,0x21,0x10]));
   p(new TextEncoder().encode(namaWarung.substring(0,W)+'\n'));
   p(new Uint8Array([ESC,0x45,0])); // Reset bold
   // Alamat dan Telp teks kecil
@@ -126,7 +126,7 @@ function buildStruk(namaWarung,alamat,telp,trx){
   p(new TextEncoder().encode(pad('Kembali:', 'Rp '+rp(trx.kembali))+'\n'));
   p(new TextEncoder().encode('-'.repeat(W)+'\n'));
   p(new Uint8Array([ESC,0x61,1]));
-  p(new TextEncoder().encode('Terima kasih sudah mampir!\n\n\n'));
+  p(new TextEncoder().encode('Terima kasih sudah mampir!\n'));  p(new TextEncoder().encode('Semoga sehat selalu :)\n'));
   p(new Uint8Array([ESC,0x64,4]));
   p(new Uint8Array([GS,0x56,0x41,0x10]));
   const total=chunks.reduce((s,c)=>s+c.length,0);
@@ -167,9 +167,9 @@ class PrinterMgr{
 const printer=new PrinterMgr();
 
 function cetakCss(namaWarung,alamat,telp,trx){
-  let h=`<div style="text-align:center;font-weight:bold;font-size:12px;margin-bottom:2px">${namaWarung}</div>`;
-  if(alamat) h+=`<div style="text-align:center;font-size:9px;line-height:1.1">${alamat}</div>`;
-  if(telp) h+=`<div style="text-align:center;font-size:9px;">Telp: ${telp}</div>`;
+  let h=`<div style="text-align:center;font-weight:bold;font-size:14px;font-weight:900;margin-bottom:2px">${namaWarung}</div>`;
+  if(alamat) h+=`<div style="text-align:center;font-size:8px;line-height:1.1">${alamat}</div>`;
+  if(telp) h+=`<div style="text-align:center;font-size:8px;">Telp: ${telp}</div>`;
   h+=`<div>${'-'.repeat(32)}</div>`;
   h+=`<div style="font-size:10px">Tgl: ${trx.tgl}  Jam: ${trx.jam}</div>`;
   h+=`<div style="font-size:10px">No : #${String(trx.id).slice(-5)}</div>`;
@@ -185,7 +185,8 @@ function cetakCss(namaWarung,alamat,telp,trx){
   h+=`<div style="display:flex;justify-content:space-between;font-size:11px"><span>Bayar (${trx.metode})</span><span>Rp ${rp(trx.bayar)}</span></div>`;
   h+=`<div style="display:flex;justify-content:space-between;font-size:11px"><span>Kembali</span><span>Rp ${rp(trx.kembali)}</span></div>`;
   h+=`<div>${'-'.repeat(32)}</div>`;
-  h+=`<div style="text-align:center;font-size:10px">Terima kasih sudah mampir!</div><br><br><br>`;
+  h+=`<div style="text-align:center;font-size:10px">Terima kasih sudah mampir!</div>`;
+  h+=`<div style="text-align:center;font-size:10px">Semoga sehat selalu :)</div><br><br><br>`;
   document.getElementById('struk-print').innerHTML=h;
   setTimeout(()=>window.print(),200);
 }
@@ -212,6 +213,7 @@ function App(){
   const[cartModal,setCartModal]=useState(null);
   const[toast,setToast]=useState('');
   const[printerSt,setPrinterSt]=useState('off');
+  const[printerName,setPrinterName]=useState('');
   const toastRef=useRef();
 
   useEffect(()=>{lsSet('wg_menu_v10',menu);},[menu]);
@@ -251,9 +253,9 @@ function App(){
   const totalHargaAkhir = useMemo(()=> Math.max(0, subtotalHarga - hitungDiskon), [subtotalHarga, hitungDiskon]);
 
   const hubungkanPrinter=async()=>{
-    if(printerSt==='on'){await printer.disconnect();setPrinterSt('off');showMsg('🔌 Printer diputus');return;}
+    if(printerSt==='on'){await printer.disconnect();setPrinterSt('off');setPrinterName('');showMsg('🔌 Printer diputus');return;}
     setPrinterSt('connecting');showMsg('🔍 Mencari printer...');
-    try{const nm=await printer.connect();setPrinterSt('on');showMsg('✅ '+nm+' terhubung!');}
+    try{const nm=await printer.connect();setPrinterSt('on');setPrinterName(nm||'Printer');showMsg('✅ '+nm+' terhubung!');}
     catch(e){setPrinterSt('off');showMsg('❌ '+e.message);}
   };
 
@@ -298,7 +300,8 @@ function App(){
     else cetakCss(namaWarung,alamatWarung,telpWarung,trx);
   };
 
-  const btnP={off:{bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'},connecting:{bg:'#f59e0b',lbl:'⏳...'},on:{bg:'#22c55e',lbl:'🖨️ ON'}}[printerSt] || {bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'};
+  const namaBt=printerName?printerName.substring(0,14):'ON';
+  const btnP={off:{bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'},connecting:{bg:'#f59e0b',lbl:'⏳ Mencari...'},on:{bg:'#22c55e',lbl:'🖨️ '+namaBt}}[printerSt] || {bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'};
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
