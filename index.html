@@ -784,10 +784,11 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 
 ReactDOM.render(<React.StrictMode><App/></React.StrictMode>,document.getElementById('root'));
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => {
-    console.log('SW registered:', reg.scope);
-  }).catch(err => {
-    console.log('SW failed:', err);
+  window.addEventListener('load', () => {
+    // Arahkan dengan jelas ke file sw.js di folder kasir
+    navigator.serviceWorker.register('/kasir/sw.js')
+      .then(reg => console.log('Service Worker terdaftar silang!', reg.scope))
+      .catch(err => console.log('Gagal daftar offline:', err));
   });
 }
 </script>
