@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>🍗 Kasir Warung Pro</title>
+<meta name="theme-color" content="#ea580c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Warung">
+<link rel="manifest" href="data:application/json;charset=utf-8,{
+  &quot;name&quot;:&quot;Kasir Warung Pro&quot;,
+  &quot;short_name&quot;:&quot;Kasir&quot;,
+  &quot;start_url&quot;:&quot;.&quot;,
+  &quot;display&quot;:&quot;standalone&quot;,
+  &quot;background_color&quot;:&quot;#0f172a&quot;,
+  &quot;theme_color&quot;:&quot;#ea580c&quot;,
+  &quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍗</text></svg>&quot;,&quot;sizes&quot;:&quot;any&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]
+}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -143,9 +157,13 @@ const BLE_SERVICES=['000018f0-0000-1000-8000-00805f9b34fb','0000e001-0000-1000-8
 class PrinterMgr{
   constructor(){this.dev=null;this.ch=null;this.mtu=100;}
   ok(){return!!this.ch;}
-  async connect(){
-    if(!navigator.bluetooth)throw new Error('Browser tidak mendukung Bluetooth.');
-    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BLE_SERVICES});
+  async connect(onProgress){
+    if(!navigator.bluetooth)throw new Error('Browser tidak mendukung Bluetooth. Gunakan Chrome.');
+    // Sertakan Device Information Service (0x180A) agar bisa baca nama dari GATT
+    const allServices=[...BLE_SERVICES,'0000180a-0000-1000-8000-00805f9b34fb'];
+    if(onProgress) onProgress('Pilih printer dari daftar...');
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:allServices});
+    if(onProgress) onProgress('Menghubungkan ke '+( dev.name||'perangkat')+'...');
     const srv=await dev.gatt.connect();
     dev.addEventListener('gattserverdisconnected',()=>{this.dev=null;this.ch=null;});
     let ch=null;
@@ -155,7 +173,20 @@ class PrinterMgr{
     }catch{}
     if(!ch)throw new Error('Karakteristik printer tidak ditemukan.');
     this.dev=dev;this.ch=ch;
-    return dev.name||'Printer BLE';
+    // Coba baca nama dari Device Information Service jika device.name null
+    let devName = dev.name || '';
+    if(!devName){
+      try{
+        const diSvc = await srv.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
+        const nameChar = await diSvc.getCharacteristic('00002a00-0000-1000-8000-00805f9b34fb');
+        const val = await nameChar.readValue();
+        devName = new TextDecoder().decode(val);
+      }catch(e){}
+    }
+    // Fallback: gunakan sebagian device.id atau label generik
+    if(!devName) devName = dev.id ? 'BT-'+dev.id.substring(0,6).toUpperCase() : 'EPOS-Printer';
+    this.devName = devName;
+    return devName;
   }
   async send(buf){
     if(!this.ch)throw new Error('Printer belum terhubung');
@@ -257,10 +288,26 @@ function App(){
   const totalHargaAkhir = useMemo(()=> Math.max(0, subtotalHarga - hitungDiskon), [subtotalHarga, hitungDiskon]);
 
   const hubungkanPrinter=async()=>{
-    if(printerSt==='on'){await printer.disconnect();setPrinterSt('off');setPrinterName('');showMsg('🔌 Printer diputus');return;}
-    setPrinterSt('connecting');showMsg('🔍 Mencari printer...');
-    try{const nm=await printer.connect();setPrinterSt('on');setPrinterName(nm||'Printer');showMsg('✅ '+nm+' terhubung!');}
-    catch(e){setPrinterSt('off');showMsg('❌ '+e.message);}
+    if(printerSt==='on'){
+      await printer.disconnect();
+      setPrinterSt('off');setPrinterName('');
+      showMsg('🔌 Printer diputus');return;
+    }
+    setPrinterSt('connecting');
+    try{
+      const nm=await printer.connect((prog)=>showMsg('🔵 '+prog));
+      setPrinterSt('on');
+      setPrinterName(nm);
+      showMsg('✅ Terhubung: '+nm);
+    }catch(e){
+      setPrinterSt('off');
+      // Tampilkan pesan error yang lebih jelas
+      if(e.message && e.message.includes('User cancelled')){
+        showMsg('⚠️ Pilihan dibatalkan');
+      } else {
+        showMsg('❌ '+e.message);
+      }
+    }
   };
 
   const eksekusiBayar=async()=>{
@@ -303,8 +350,13 @@ function App(){
     else cetakCss(namaWarung,alamatWarung,telpWarung,trx);
   };
 
-  const namaBt=printerName?printerName.substring(0,14):'ON';
-  const btnP={off:{bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'},connecting:{bg:'#f59e0b',lbl:'⏳ Mencari...'},on:{bg:'#22c55e',lbl:'🖨️ '+namaBt}}[printerSt] || {bg:'rgba(255,255,255,0.15)',lbl:'🔌 Printer'};
+  // Tampilkan nama device BT secara lengkap (maks 20 char) agar mudah identifikasi di tablet
+  const namaBt=printerName ? printerName.substring(0,20) : 'ON';
+  const btnP={
+    off:       {bg:'rgba(255,255,255,0.18)',lbl:'🔌 Hubungkan Printer'},
+    connecting:{bg:'#f59e0b',              lbl:'⏳ Menghubungkan...'},
+    on:        {bg:'#22c55e',              lbl:'🖨️ '+namaBt},
+  }[printerSt] || {bg:'rgba(255,255,255,0.18)',lbl:'🔌 Hubungkan Printer'};
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
@@ -315,7 +367,7 @@ function App(){
           <div style={{fontSize:'10px',opacity:0.8,marginTop:2}}>{tgl()} · Sistem v10 Tab-Ready</div>
         </div>
         <button onClick={hubungkanPrinter} disabled={printerSt==='connecting'}
-          style={{background:btnP.bg,border:'none',padding:'6px 12px',borderRadius:'20px',color:'#fff',fontSize:'11px',fontWeight:700,cursor:'pointer'}}>
+          style={{background:btnP.bg,border:'1px solid rgba(255,255,255,0.3)',padding:'7px 14px',borderRadius:'20px',color:'#fff',fontSize:'11px',fontWeight:700,cursor:'pointer',maxWidth:'200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',transition:'all .2s'}}>
           {btnP.lbl}
         </button>
       </div>
@@ -741,8 +793,58 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 }
 
 ReactDOM.render(<React.StrictMode><App/></React.StrictMode>,document.getElementById('root'));
+// ── INLINE SERVICE WORKER (tidak perlu file sw.js terpisah) ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
+  const SW_VERSION = 'kasir-v10';
+  const swCode = `
+const CACHE = '${SW_VERSION}';
+const ASSETS = [
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap',
+  'https://unpkg.com/react@18/umd/react.production.min.js',
+  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+  'https://unpkg.com/@babel/standalone/babel.min.js',
+];
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => {
+      return c.addAll(ASSETS).catch(() => {});
+    }).then(() => self.skipWaiting())
+  );
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', e => {
+  // Cache-first untuk CDN assets, network-first untuk halaman utama
+  const url = e.request.url;
+  if (url.includes('unpkg.com') || url.includes('fonts.googleapis') || url.includes('fonts.gstatic')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      }))
+    );
+  } else {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+  }
+});
+`;
+  try {
+    const blob = new Blob([swCode], {type: 'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl, {scope: './'}).then(reg => {
+      console.log('SW inline registered', reg.scope);
+    }).catch(() => {
+      // Blob SW tidak support di semua browser, fallback diam-diam
+    });
+  } catch(e) {}
 }
 </script>
 </body>
