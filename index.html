@@ -476,7 +476,7 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
         ))}
       </div>
 
-      <div style={{flex:1,overflowY:'auto',padding:'0 14px 80px',display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,alignContent:'start'}}>
+      <div style={{flex:1,overflowY:'auto',padding:'0 14px 80px',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))',gap:10,alignContent:'start'}}>
         {filtered.map(m=>(
           <div key={m.id} onClick={()=>keCart(m)} style={{background:'#fff',borderRadius:14,padding:10,border:'1px solid #e2e8f0',position:'relative',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:95}}>
             <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
