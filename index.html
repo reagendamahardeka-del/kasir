@@ -636,16 +636,16 @@ function TabMenu({menu,setMenu,showMsg}){
   );
 }
 
-/* ═══ TAB PENGATURAN (IDENTITAS NOTA) ═══ */
+/* ═══ TAB PENGATURAN (IDENTITAS NOTA) - PERBAIKAN SINKRONISASI VARIABEL ═══ */
 function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpWarung,setTelpWarung,transaksi,setTransaksi,pengeluaran,setPengeluaran,showMsg,proteksi}){
-  const[wNama,setWNama]=useState(namaWarung);
-  const[wAlamat,setWAlamat]=useState(alamatWarung);
-  const[wTelp,setWTelp]=useState(telpWarung);
+  const[nama,setNama]=useState(namaWarung);
+  const[alamat,setAlamat]=useState(alamatWarung);
+  const[telp,setTelp]=useState(telpWarung);
 
   const simpanInformasiProfil=()=>{
-    setNamaWarung(wNama);
-    setAlamatWarung(wAlamat);
-    setTelpWarung(wTelp);
+    setNamaWarung(nama);
+    setAlamatWarung(alamat);
+    setTelpWarung(telp);
     showMsg('💾 Identitas Nota Diperbarui!');
   };
 
@@ -665,15 +665,15 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
         <div style={{fontWeight:800,fontSize:13,color:'#ea580c',marginBottom:8}}>🏢 Identitas Profile Toko / Nota</div>
         
         <label style={{fontSize:10,color:'#94a3b8',fontWeight:700}}>NAMA WARUNG / KEDAI</label>
-        <input value={wNama} onChange={e=>setWNama(e.target.value)} placeholder="Contoh: Kedai Selada Air"
+        <input value={nama} onChange={e=>setNama(e.target.value)} placeholder="Contoh: Kedai Selada Air"
           style={{width:'100%',padding:8,border:'1px solid #e2e8f0',borderRadius:8,fontSize:13,outline:'none',marginBottom:8,marginTop:2}}/>
         
         <label style={{fontSize:10,color:'#94a3b8',fontWeight:700}}>ALAMAT WARUNG</label>
-        <input value={wAlamat} onChange={e=>setWAlamat(e.target.value)} placeholder="Contoh: Jl. Ahmad Yani No. 12 Magelang"
+        <input value={alamat} onChange={e=>setAlamat(e.target.value)} placeholder="Contoh: Jl. Ahmad Yani No. 12 Magelang"
           style={{width:'100%',padding:8,border:'1px solid #e2e8f0',borderRadius:8,fontSize:13,outline:'none',marginBottom:8,marginTop:2}}/>
         
         <label style={{fontSize:10,color:'#94a3b8',fontWeight:700}}>NOMOR TELEPON / WA</label>
-        <input value={wTelp} onChange={e=>setWTelp(e.target.value)} placeholder="Contoh: 08123456789"
+        <input value={telp} onChange={e=>setTelp(e.target.value)} placeholder="Contoh: 08123456789"
           style={{width:'100%',padding:8,border:'1px solid #e2e8f0',borderRadius:8,fontSize:13,outline:'none',marginBottom:10,marginTop:2}}/>
 
         <button onClick={simpanInformasiProfil} style={{width:'100%',padding:10,background:'#ea580c',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer'}}>
@@ -683,8 +683,7 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 
       <div style={{background:'#fff',borderRadius:14,padding:14,border:'1px solid #fecaca'}}>
         <div style={{fontWeight:800,fontSize:13,color:'#ef4444',marginBottom:6}}>⚠️ Reset Data Utama (Akses Khusus)</div>
-        <button onClick={resetSemuaDataMemori}
-          style={{width:'100%',padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,color:'#ef4444',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+        <button onClick={resetSemuaDataMemori}\n          style={{width:'100%',padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,color:'#ef4444',fontSize:12,fontWeight:700,cursor:'pointer'}}>
           🔒 Reset Total Semua Laporan Transaksi
         </button>
       </div>
