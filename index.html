@@ -369,7 +369,7 @@ function App(){
                 </div>
               ))}
             </div>
-            <div style={{background:'#fff7ed',borderRadius:12,padding:12,marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{background:'#fff7ed',borderRadius:12,padding:12,marginBottom:12,display:'flex',justifyContent={spaceBetween:true},alignItems:'center'}}>
               <div>
                 <div style={{fontSize:11,color:'#94a3b8',fontWeight:600}}>SUBTOTAL ({totalQty} ITEM)</div>
                 <div style={{fontSize:16,fontWeight:800,color:'#ea580c'}}>Rp {rp(subtotalHarga)}</div>
@@ -475,7 +475,7 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
         ))}
       </div>
 
-      {/* PERBAIKAN GRID: Menggunakan auto-fill agar di tablet bisa otomatis membagi menjadi banyak kolom kembali */}
+      {/* SEKARANG SUDAH AUTO-FILL: SANGAT COCOK DI TABLET, JADI BANYAK BARIS KOLOM */}
       <div style={{flex:1,overflowY:'auto',padding:'0 14px 80px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:10,alignContent:'start'}}>
         {filtered.map(m=>(
           <div key={m.id} onClick={()=>keCart(m)} style={{background:'#fff',borderRadius:14,padding:10,border:'1px solid #e2e8f0',position:'relative',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:95}}>
@@ -497,7 +497,7 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
         <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(to top,rgba(248,250,252,1) 70%,rgba(248,250,252,0))',padding:'10px 14px 16px',zIndex:10}}>
           <button onClick={()=>setCartModal('review')} style={{width:'100%',padding:12,background:'linear-gradient(135deg,#ea580c,#c2410c)',color:'#fff',border:'none',borderRadius:12,fontWeight:800,fontSize:13,display:'flex',justifyContent:'space-between',alignItems:'center',boxShadow:'0 10px 15px -3px rgba(234,88,12,0.3)',cursor:'pointer'}}>
             <span>🛒 Meja ({totalQty} Item)</span>
-            <span style={{background:'rgba(255,255,255,0.2)',padding:'2px 8px',borderRadius:8 relational}}>Rp {rp(totalHarga)} ➔</span>
+            <span style={{background:'rgba(255,255,255,0.2)',padding:'2px 8px',borderRadius:8}}>Rp {rp(totalHarga)} ➔</span>
           </button>
         </div>
       )}
@@ -699,7 +699,7 @@ if (React.createRoot) {
   ReactDOM.render(<App />, container);
 }
 
-// REGISTER OFFLINE (PWA): Menggunakan Relative Path agar selaras dengan folder repositori /kasir/ Bapak
+// REGISTER OFFLINE (PWA): Relatif ke folder repositori /kasir/ Bapak
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
