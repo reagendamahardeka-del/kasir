@@ -20,7 +20,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#0f172a;display:flex;
 #root{width:100%;max-width:412px;height:100vh;max-height:892px;background:#f8fafc;position:relative;display:flex;flex-direction:column;overflow:hidden}
 
 @media(min-width:600px){
-  #root{max-width:90%;max-height:95vh;border-radius:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.4)}
+  #root{max-width:95%;max-height:95vh;border-radius:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.4)}
 }
 ::-webkit-scrollbar{display:none}
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
@@ -144,7 +144,6 @@ class PrinterMgr{
   async connect(){
     if(!navigator.bluetooth)throw new Error('Browser tidak mendukung Bluetooth.');
     
-    // PERBAIKAN TABLET: Memaksa Android memfilter berdasarkan inisial printer POS agar memuat teks nama perangkat
     const dev=await navigator.bluetooth.requestDevice({
       filters: [
         { namePrefix: 'EPPOS' },
@@ -454,7 +453,7 @@ function App(){
   );
 }
 
-/* ═══ TAB KASIR (GRID KULINER) ═══ */
+/* ═══ TAB KASIR (GRID KULINER RESPONSif TABLET & HP) ═══ */
 function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,setCartModal}){
   const[kat,setKat]=useState('Semua');
   const[q,setQ]=useState('');
@@ -476,7 +475,8 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
         ))}
       </div>
 
-      <div style={{flex:1,overflowY:'auto',padding:'0 14px 80px',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))',gap:10,alignContent:'start'}}>
+      {/* PERBAIKAN GRID: Menggunakan auto-fill agar di tablet bisa otomatis membagi menjadi banyak kolom kembali */}
+      <div style={{flex:1,overflowY:'auto',padding:'0 14px 80px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:10,alignContent:'start'}}>
         {filtered.map(m=>(
           <div key={m.id} onClick={()=>keCart(m)} style={{background:'#fff',borderRadius:14,padding:10,border:'1px solid #e2e8f0',position:'relative',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:95}}>
             <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
@@ -497,7 +497,7 @@ function TabKasir({menu,cart,keCart,ubahQty,totalHarga,subtotal,diskon,totalQty,
         <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(to top,rgba(248,250,252,1) 70%,rgba(248,250,252,0))',padding:'10px 14px 16px',zIndex:10}}>
           <button onClick={()=>setCartModal('review')} style={{width:'100%',padding:12,background:'linear-gradient(135deg,#ea580c,#c2410c)',color:'#fff',border:'none',borderRadius:12,fontWeight:800,fontSize:13,display:'flex',justifyContent:'space-between',alignItems:'center',boxShadow:'0 10px 15px -3px rgba(234,88,12,0.3)',cursor:'pointer'}}>
             <span>🛒 Meja ({totalQty} Item)</span>
-            <span style={{background:'rgba(255,255,255,0.2)',padding:'2px 8px',borderRadius:8}}>Rp {rp(totalHarga)} ➔</span>
+            <span style={{background:'rgba(255,255,255,0.2)',padding:'2px 8px',borderRadius:8 relational}}>Rp {rp(totalHarga)} ➔</span>
           </button>
         </div>
       )}
@@ -636,7 +636,7 @@ function TabMenu({menu,setMenu,showMsg}){
   );
 }
 
-/* ═══ TAB PENGATURAN (IDENTITAS NOTA) - PERBAIKAN SINKRONISASI VARIABEL ═══ */
+/* ═══ TAB PENGATURAN (SINKRON VARIABEL) ═══ */
 function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpWarung,setTelpWarung,transaksi,setTransaksi,pengeluaran,setPengeluaran,showMsg,proteksi}){
   const[nama,setNama]=useState(namaWarung);
   const[alamat,setAlamat]=useState(alamatWarung);
@@ -683,7 +683,8 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 
       <div style={{background:'#fff',borderRadius:14,padding:14,border:'1px solid #fecaca'}}>
         <div style={{fontWeight:800,fontSize:13,color:'#ef4444',marginBottom:6}}>⚠️ Reset Data Utama (Akses Khusus)</div>
-        <button onClick={resetSemuaDataMemori}\n          style={{width:'100%',padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,color:'#ef4444',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+        <button onClick={resetSemuaDataMemori}
+          style={{width:'100%',padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,color:'#ef4444',fontSize:12,fontWeight:700,cursor:'pointer'}}>
           🔒 Reset Total Semua Laporan Transaksi
         </button>
       </div>
@@ -692,22 +693,13 @@ function TabSetting({namaWarung,setNamaWarung,alamatWarung,setAlamatWarung,telpW
 }
 
 const container = document.getElementById('root');
-const root = ReactRoot(container);
-root.render(<App />);
-
-function ReactRoot(container) {
-  if (React.createRoot) {
-    return React.createRoot(container);
-  } else {
-    return {
-      render: (element) => {
-        ReactDOM.render(element, container);
-      }
-    };
-  }
+if (React.createRoot) {
+  React.createRoot(container).render(<App />);
+} else {
+  ReactDOM.render(<App />, container);
 }
 
-// PERBAIKAN OFFLINE: Pendaftaran Service Worker yang sinkron dengan root direktori GitHub Pages sub-folder /kasir/
+// REGISTER OFFLINE (PWA): Menggunakan Relative Path agar selaras dengan folder repositori /kasir/ Bapak
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
