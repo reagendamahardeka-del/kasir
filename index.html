@@ -149,7 +149,21 @@ class PrinterMgr{
   constructor(){this.dev=null;this.ch=null;this.mtu=100;}
   ok(){return!!this.ch;}
   async connect(){
-    if(!navigator.bluetooth)throw new Error('Gunakan Chrome/Edge. Browser ini tidak support Bluetooth.');
+  if(!navigator.bluetooth)throw new Error('Browser tidak mendukung Bluetooth.');
+  
+  // Kita buat filter nama printer yang umum di pasaran (termasuk EPPOS)
+  const dev=await navigator.bluetooth.requestDevice({
+    filters: [
+      { namePrefix: 'EPPOS' },
+      { namePrefix: 'RPP' },
+      { namePrefix: 'Printer' },
+      { namePrefix: 'MTP' },
+      { namePrefix: 'PT' },
+      { namePrefix: 'POS' }
+    ],
+    optionalServices: BLE_SERVICES
+  });
+  // ...
     // Tambah Generic Access (0x1800) agar bisa baca Device Name characteristic (0x2A00)
     const allSvcs=[...BLE_SERVICES,
       '00001800-0000-1000-8000-00805f9b34fb', // Generic Access - berisi Device Name
